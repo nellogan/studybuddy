@@ -111,3 +111,4 @@ studybuddy is licensed under the Apache 2.0 License, see files LICENSE and NOTIC
 
 # Suggestions or Issues
 For any suggestions such as support for a new language or any bugs are found, raise an issue at: https://github.com/nellogan/studybuddy/issues
+
