@@ -1,8 +1,6 @@
 import argparse
 import sys
 
-from selenium.common import StaleElementReferenceException
-
 from studybuddy.scraper import Scraper
 from studybuddy.filewriter import FileWriter
 from studybuddy.util import parse_file_to_list
@@ -19,36 +17,28 @@ class StudyBuddy:
         self.scraper = Scraper(selected_language)
         self.file_writer = FileWriter(dest_dir, selected_language)
 
-    def handle_question(self, question_url, log=True):
-        max_attempts = 3
-        attempt = 1
-        while attempt < max_attempts:
-            try:
-                code_file_name, difficulty, code_lines = self.scraper.get_url_data(question_url)
-                self.file_writer.write_code_file(code_file_name, difficulty, question_url, code_lines, log)
-                break
-            # Sometimes the code lines are stale elements even when using ec.visibility_of_all_elements_located(...),
-            # or checking if the old code lines with ec.staleness_of(...). Maybe this is on purpose to thwart scraping.
-            # Either way, this attempt vs max attempt approach is an easy workaround
-            except StaleElementReferenceException:
-                print(f"StaleElementReferenceException encountered while trying to scrape URL: {question_url}, retry attempt: {attempt}")
-                attempt += 1
-
-        if attempt == max_attempts:
-            raise ValueError(f"Fatal Error: Max attempts reached while trying to scrape scrape URL: {question_url}, exiting...")
-
     def handle_single_question(self, question_url, log=True):
-        self.handle_question(question_url, log)
-        self.scraper.quit()
-
-    def handle_multiple_questions(self, question_urls, log=True):
-        for question_url in question_urls:
-            self.handle_question(question_url, log)
+        num_retries = 3
+        attempt = 0
+        code_file_name, difficulty, code_lines = None, None, None
+        while attempt < num_retries:
+            code_file_name, difficulty, code_lines = self.scraper.get_url_data(question_url)
+            if code_lines: # Check if code_lines are valid
+                break
+            attempt += 1
+        if attempt == num_retries:
+            raise ValueError(f'Failed to handle URL:{question_url}, stale elements for all code_lines')
+        self.file_writer.write_code_file(code_file_name, difficulty, question_url, code_lines, log)
         self.scraper.quit()
 
     def handle_questions_file(self, file_path, log=True):
         question_urls = parse_file_to_list(file_path)
         self.handle_multiple_questions(question_urls, log)
+
+    def handle_multiple_questions(self, question_urls, log=True):
+        for question_url in question_urls:
+            self.handle_single_question(question_url, log)
+        self.scraper.quit()
 
 
 def parse_arguments():
