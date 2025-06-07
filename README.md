@@ -14,7 +14,7 @@ What studybuddy does:
        rating. Allows the user to take notes per question such as start time, end time, link to a discussion post
        with a clean answer for comparison or review. This log header will also be included in the solution file so
        that it can be seamlessly copy pasted back into the log.txt file.
-    5. The log file can be omitted by passing the -n commandline option. -- todo add this option
+    5. The log file can be omitted by passing the -n commandline option.
 
 For example, passing URL: https://leetcode.com/problems/two-sum/ will produce a file called 'TwoSum.py' (if 
 Python selected). Since the question is marked Easy, the suggested time limit will be set to 20 minutes 
