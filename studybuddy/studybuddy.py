@@ -19,12 +19,13 @@ class StudyBuddy:
         self.scraper = Scraper(selected_language)
         self.file_writer = FileWriter(dest_dir, selected_language)
 
-        # Register signal handlers for SIGINT (Ctrl+C) and SIGTSTP (Ctrl+Z)
+        # Register signal handlers for SIGINT (Ctrl+C), SIGTERM (default kill), and SIGHUP (user logged off, but system still running)
         signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTSTP, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGHUP, self.signal_handler)
 
-    # Make sure Selenium properly shuts down any running drivers if SIGINT or SIGTSTP signal received, if this is not
-    # done zombie processes can occur or worse chromium or chromedriver can remain running
+    # Make sure Selenium properly shuts down any running drivers if SIGINT, SIGTERM, or SIGHUP signal received to
+    # prevent zombie processes
     def signal_handler(self, sig, frame):
         print(f"\nReceived signal: {sig}. Closing WebDriver...")
         if self.scraper.driver:
