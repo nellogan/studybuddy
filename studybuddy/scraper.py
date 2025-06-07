@@ -1,4 +1,5 @@
 import random
+import signal
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -66,10 +67,6 @@ class Scraper:
         self.language_button_css_selector = "button.px-1\\.5"
         self.language_option_css_selector = "div.border-r.border-solid"
         self.code_line_css_selector = "div.view-lines.monaco-mouse-cursor-text"
-
-    def quit(self):
-        self.driver.quit()
-        self.driver.session_id = None
 
     def get_selected_language_button(self):
         language_options_lists = self.wait.until(

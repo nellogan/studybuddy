@@ -1,6 +1,6 @@
 import argparse
 import sys
-
+import signal
 from selenium.common import StaleElementReferenceException
 
 from studybuddy.scraper import Scraper
@@ -18,6 +18,18 @@ class StudyBuddy:
         self.time_limits = {"Easy": 20, "Medium": 30, "Hard": 40}
         self.scraper = Scraper(selected_language)
         self.file_writer = FileWriter(dest_dir, selected_language)
+
+        # Register signal handlers for SIGINT (Ctrl+C) and SIGTSTP (Ctrl+Z)
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTSTP, self.signal_handler)
+
+    # Make sure Selenium properly shuts down any running drivers if SIGINT or SIGTSTP signal received, if this is not
+    # done zombie processes can occur or worse chromium or chromedriver can remain running
+    def signal_handler(self, sig, frame):
+        print(f"\nReceived signal: {sig}. Closing WebDriver...")
+        if self.scraper.driver:
+            self.scraper.driver.quit()
+        sys.exit(2)
 
     def handle_question(self, question_url, log=True):
         max_attempts = 3
@@ -39,12 +51,12 @@ class StudyBuddy:
 
     def handle_single_question(self, question_url, log=True):
         self.handle_question(question_url, log)
-        self.scraper.quit()
+        self.scraper.driver.quit()
 
     def handle_multiple_questions(self, question_urls, log=True):
         for question_url in question_urls:
             self.handle_question(question_url, log)
-        self.scraper.quit()
+        self.scraper.driver.quit()
 
     def handle_questions_file(self, file_path, log=True):
         question_urls = parse_file_to_list(file_path)
