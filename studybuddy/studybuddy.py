@@ -24,7 +24,7 @@ class StudyBuddy:
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGHUP, self.signal_handler)
 
-    # Make sure Selenium properly shuts down any running drivers if SIGINT, SIGTERM, or SIGHUP signal received to
+    # Make sure Selenium properly shuts down any the driver if SIGINT, SIGTERM, or SIGHUP signal received to
     # prevent zombie processes
     def signal_handler(self, sig, frame):
         print(f"\nReceived signal: {sig}. Closing WebDriver...")
