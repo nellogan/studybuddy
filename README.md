@@ -1,3 +1,5 @@
+[![CI](https://github.com/nellogan/studybuddy/actions/workflows/CI.yml/badge.svg)](https://github.com/nellogan/studybuddy/actions/workflows/CI.yml)
+
 # Description
 Optimize Leetcode study sessions by scraping provided URLs to local files with preconfigured imports/includes and supporting build files.
 
@@ -111,4 +113,3 @@ studybuddy is licensed under the Apache 2.0 License, see files LICENSE and NOTIC
 
 # Suggestions or Issues
 For any suggestions such as support for a new language or any bugs are found, raise an issue at: https://github.com/nellogan/studybuddy/issues
-
