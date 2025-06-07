@@ -1,6 +1,6 @@
 import random
-import signal
 from selenium import webdriver
+from selenium.common import StaleElementReferenceException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
@@ -8,6 +8,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 
 from studybuddy.util import get_user_agents, file_name_from_url
+
+def stale_element_filter(elements):
+    valid_elements = []
+    for element in elements:
+        try:
+            # Attempt to access a property (e.g., text) to check if the element is stale
+            _ = element.text
+            valid_elements.append(element)
+        except StaleElementReferenceException:
+            # Skip stale elements
+            continue
+    return valid_elements
 
 
 def initialize_driver():
@@ -68,6 +80,15 @@ class Scraper:
         self.language_option_css_selector = "div.border-r.border-solid"
         self.code_line_css_selector = "div.view-lines.monaco-mouse-cursor-text"
 
+    def quit(self):
+        self.driver.quit()
+        self.driver.session_id = None
+
+    def reinit_driver(self):
+        self.driver.quit()
+        self.driver = initialize_driver()
+        self.wait = WebDriverWait(self.driver, self.wait_timeout)
+
     def get_selected_language_button(self):
         language_options_lists = self.wait.until(
             ec.presence_of_all_elements_located((By.CSS_SELECTOR, self.language_option_css_selector))
@@ -80,6 +101,30 @@ class Scraper:
                     return language_name_element
 
         return None
+
+    def get_code_line_elements(self):
+        while True:
+            line_elements = self.wait.until(
+                ec.visibility_of_all_elements_located((By.CSS_SELECTOR, f"{self.code_line_css_selector} div"))
+            )
+            line_elements = stale_element_filter(line_elements)
+            if len(line_elements) != 0:
+                return line_elements
+
+    def get_code_lines(self):
+        line_elements = self.get_code_line_elements()
+        print("size line_elements", len(line_elements))
+        code_lines = []
+        for line in line_elements:
+            try:
+                # Attempt to access a property (e.g., text) to check if the element is stale
+                line_text = line.text
+                code_lines.append(line_text + "\n")
+            except StaleElementReferenceException:
+                # Skip stale elements
+                continue
+        print(f"\ncode_lines: {code_lines}\n")
+        return code_lines
 
     def get_url_data(self, url):
         file_name = file_name_from_url(url)
@@ -95,31 +140,24 @@ class Scraper:
                                                                      self.difficulty_css_selectors))).text
 
         change_language_button = self.wait.until(
-            ec.visibility_of_element_located((By.CSS_SELECTOR, self.language_button_css_selector)))
+            ec.element_to_be_clickable((By.CSS_SELECTOR, self.language_button_css_selector)))
         change_language_button.click()
 
-        # When language is selected Leetcode reuses code line elements but changes their text values (possibly changing
-        # the number of them too); Therefore, direct staleness checking does not validate that the lines reflect the selected
-        # langauge. To avoid this race condition, check that the new lines are not equal to the old and catch the corner
-        # case where code lines could be empty
-        old_code_lines = self.wait.until(ec.visibility_of_all_elements_located((By.CSS_SELECTOR, f"{self.code_line_css_selector} div")))
-        old_code_lines_text = [element.text for element in old_code_lines]
+        # After setting the language the first time, it should remain for each question. The preferred language is
+        # stored either in cookies or determined server side. Either way this check is done to prevent any unexpected
+        # changes
+
         if change_language_button.text != self.selected_language:
             selected_language_button = self.get_selected_language_button()
             selected_language_button.click()
-            while True:
-                line_elements = self.wait.until(
-                    ec.visibility_of_all_elements_located((By.CSS_SELECTOR, f"{self.code_line_css_selector} div"))
-                )
-                line_elements_text = [element.text for element in line_elements]
-                if line_elements_text != old_code_lines_text and line_elements_text:
-                    break
-        else:
-            line_elements_text = [element.text for element in old_code_lines]
+            # Wait until selection changes
+            change_language_button = self.wait.until(
+                ec.element_to_be_clickable((By.CSS_SELECTOR, self.language_button_css_selector)))
 
-        code_lines = []
-        for line in line_elements_text:
-            code_lines.append(line + "\n")
+        print(f"checking language selection: {change_language_button.text}")
+
+        code_lines = self.get_code_lines()
+
 
         if not code_lines:
             print(f"Error: No code lines found for selected language: {self.selected_language} for "

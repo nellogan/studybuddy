@@ -25,7 +25,7 @@ def file_name_from_url(url):
         return None
 
     file_name_slug = url[file_name_slug_start_idx:file_name_slug_end_idx]
-    # Convert slugs native snake-case to CapCase.
+    # Convert slugs native snake-case to CapCase
     file_name = "".join([x.capitalize() for x in file_name_slug.split("-")])
     return file_name
 
